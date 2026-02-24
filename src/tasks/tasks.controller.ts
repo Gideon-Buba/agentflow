@@ -11,13 +11,16 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiOkResponse,
-  ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
+import {
+  ApiCreatedTypedResponse,
+  ApiOkTypedResponse,
+  ApiOkTypedArrayResponse,
+} from '../common/decorators/api-typed-response.decorator';
 import { TasksService, TaskStatus } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { AcceptTaskDto } from './dto/accept-task.dto';
@@ -36,7 +39,7 @@ export class TasksController {
       'Saves the task to Supabase and publishes a `TASK_POSTED` event to the marketplace HCS topic. ' +
       'The returned `hcs_sequence_number` is the consensus position on Hedera.',
   })
-  @ApiCreatedResponse({ type: TaskDto })
+  @ApiCreatedTypedResponse(TaskDto)
   @ApiBadRequestResponse({ description: 'Missing required fields' })
   create(@Body() dto: CreateTaskDto): Promise<TaskDto> {
     return this.tasksService.create(dto) as Promise<TaskDto>;
@@ -45,7 +48,8 @@ export class TasksController {
   @Get()
   @ApiOperation({
     summary: 'List tasks',
-    description: 'Returns all tasks ordered by creation date (newest first). Filter by `status` to narrow results.',
+    description:
+      'Returns all tasks ordered by creation date (newest first). Filter by `status` to narrow results.',
   })
   @ApiQuery({
     name: 'status',
@@ -53,15 +57,19 @@ export class TasksController {
     enum: ['OPEN', 'ACCEPTED', 'COMPLETED', 'CANCELLED'],
     description: 'Filter by task status',
   })
-  @ApiOkResponse({ type: [TaskDto] })
+  @ApiOkTypedArrayResponse(TaskDto)
   findAll(@Query('status') status?: TaskStatus): Promise<TaskDto[]> {
     return this.tasksService.findAll(status) as Promise<TaskDto[]>;
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a task by ID' })
-  @ApiParam({ name: 'id', description: 'Task UUID', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @ApiOkResponse({ type: TaskDto })
+  @ApiParam({
+    name: 'id',
+    description: 'Task UUID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiOkTypedResponse(TaskDto)
   @ApiNotFoundResponse({ description: 'Task not found' })
   findOne(@Param('id') id: string): Promise<TaskDto> {
     return this.tasksService.findOne(id) as Promise<TaskDto>;
@@ -74,11 +82,18 @@ export class TasksController {
       'Assigns an agent to an `OPEN` task and publishes a `TASK_ACCEPTED` event to HCS. ' +
       'The task status moves to `ACCEPTED`.',
   })
-  @ApiParam({ name: 'id', description: 'Task UUID', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @ApiOkResponse({ type: TaskDto })
+  @ApiParam({
+    name: 'id',
+    description: 'Task UUID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiOkTypedResponse(TaskDto)
   @ApiBadRequestResponse({ description: 'Task is not OPEN' })
   @ApiNotFoundResponse({ description: 'Task not found' })
-  accept(@Param('id') id: string, @Body() dto: AcceptTaskDto): Promise<TaskDto> {
+  accept(
+    @Param('id') id: string,
+    @Body() dto: AcceptTaskDto,
+  ): Promise<TaskDto> {
     return this.tasksService.accept(id, dto) as Promise<TaskDto>;
   }
 
@@ -90,9 +105,15 @@ export class TasksController {
       'account to the agent via Hedera, and publishes a `TASK_COMPLETED` event to HCS. ' +
       'The Hedera transaction ID is stored in `payment_tx_id`.',
   })
-  @ApiParam({ name: 'id', description: 'Task UUID', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @ApiOkResponse({ type: TaskDto })
-  @ApiBadRequestResponse({ description: 'Task is not ACCEPTED or has no assigned agent' })
+  @ApiParam({
+    name: 'id',
+    description: 'Task UUID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiOkTypedResponse(TaskDto)
+  @ApiBadRequestResponse({
+    description: 'Task is not ACCEPTED or has no assigned agent',
+  })
   @ApiNotFoundResponse({ description: 'Task not found' })
   complete(@Param('id') id: string): Promise<TaskDto> {
     return this.tasksService.complete(id) as Promise<TaskDto>;
