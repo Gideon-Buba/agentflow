@@ -6,31 +6,56 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiInternalServerErrorResponse,
+} from '@nestjs/swagger';
 import { HederaService } from './hedera.service';
 import {
   CreateTopicDto,
   PublishMessageDto,
   PostTaskEventDto,
   TransferHbarDto,
+  HederaStatusResponse,
+  TopicIdResponse,
+  SequenceNumberResponse,
+  TransactionIdResponse,
 } from './dto/hedera.dto';
 
+@ApiTags('Hedera')
 @Controller('hedera')
 export class HederaController {
   constructor(private readonly hederaService: HederaService) {}
 
-  /** GET /hedera/status — returns the operator account and marketplace topic */
   @Get('status')
-  getStatus() {
+  @ApiOperation({
+    summary: 'Get operator status',
+    description:
+      'Returns the operator Hedera account ID and the active marketplace HCS topic ID.',
+  })
+  @ApiOkResponse({ type: HederaStatusResponse })
+  getStatus(): HederaStatusResponse {
     return {
       operator: this.hederaService.getOperatorAccountId(),
       marketplaceTopicId: this.hederaService.getMarketplaceTopicId(),
     };
   }
 
-  /** POST /hedera/topic — create a new HCS topic */
   @Post('topic')
   @HttpCode(HttpStatus.CREATED)
-  async createTopic(@Body() dto: CreateTopicDto) {
+  @ApiOperation({
+    summary: 'Create an HCS topic',
+    description:
+      'Creates a new Hedera Consensus Service topic. ' +
+      'Pass `setAsMarketplace: true` to make this the active marketplace topic.',
+  })
+  @ApiCreatedResponse({ type: TopicIdResponse })
+  @ApiInternalServerErrorResponse({ description: 'Hedera network unreachable' })
+  async createTopic(@Body() dto: CreateTopicDto): Promise<TopicIdResponse> {
     const topicId = await this.hederaService.createTopic(dto.memo);
     if (dto.setAsMarketplace) {
       this.hederaService.setMarketplaceTopicId(topicId);
@@ -38,10 +63,19 @@ export class HederaController {
     return { topicId };
   }
 
-  /** POST /hedera/message — publish a raw message to any topic */
   @Post('message')
   @HttpCode(HttpStatus.CREATED)
-  async publishMessage(@Body() dto: PublishMessageDto) {
+  @ApiOperation({
+    summary: 'Publish a raw message to an HCS topic',
+    description:
+      'Submits an arbitrary string message to the specified HCS topic and returns the consensus sequence number.',
+  })
+  @ApiCreatedResponse({ type: SequenceNumberResponse })
+  @ApiBadRequestResponse({ description: 'Invalid topic ID format' })
+  @ApiInternalServerErrorResponse({ description: 'Hedera network unreachable' })
+  async publishMessage(
+    @Body() dto: PublishMessageDto,
+  ): Promise<SequenceNumberResponse> {
     const sequenceNumber = await this.hederaService.publishMessage(
       dto.topicId,
       dto.message,
@@ -49,10 +83,21 @@ export class HederaController {
     return { sequenceNumber };
   }
 
-  /** POST /hedera/task-event — post a structured marketplace event */
   @Post('task-event')
   @HttpCode(HttpStatus.CREATED)
-  async postTaskEvent(@Body() dto: PostTaskEventDto) {
+  @ApiOperation({
+    summary: 'Post a structured task event to the marketplace topic',
+    description:
+      'Serialises the event type and payload as JSON and publishes it to the marketplace HCS topic. ' +
+      'Requires `HEDERA_MARKETPLACE_TOPIC_ID` to be set or a topic created via `POST /hedera/topic`.',
+  })
+  @ApiCreatedResponse({ type: SequenceNumberResponse })
+  @ApiInternalServerErrorResponse({
+    description: 'Hedera network unreachable or marketplace topic not initialised',
+  })
+  async postTaskEvent(
+    @Body() dto: PostTaskEventDto,
+  ): Promise<SequenceNumberResponse> {
     const sequenceNumber = await this.hederaService.postTaskEvent(
       dto.eventType,
       dto.payload,
@@ -60,10 +105,20 @@ export class HederaController {
     return { sequenceNumber };
   }
 
-  /** POST /hedera/transfer — send HBAR from operator to recipient */
   @Post('transfer')
   @HttpCode(HttpStatus.CREATED)
-  async transferHbar(@Body() dto: TransferHbarDto) {
+  @ApiOperation({
+    summary: 'Transfer HBAR to an account',
+    description:
+      'Sends HBAR from the operator account (configured via `HEDERA_ACCOUNT_ID`) to any Hedera account. ' +
+      'Returns the Hedera transaction ID.',
+  })
+  @ApiCreatedResponse({ type: TransactionIdResponse })
+  @ApiBadRequestResponse({ description: 'Invalid recipient account ID' })
+  @ApiInternalServerErrorResponse({ description: 'Hedera network unreachable or insufficient balance' })
+  async transferHbar(
+    @Body() dto: TransferHbarDto,
+  ): Promise<TransactionIdResponse> {
     const transactionId = await this.hederaService.transferHbar(
       dto.recipientId,
       dto.amountHbar,
