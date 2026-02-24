@@ -66,7 +66,7 @@ export class AgentsService {
   // ─── CRUD ────────────────────────────────────────────────────────────────────
 
   async create(dto: CreateAgentDto): Promise<Agent> {
-    const { data, error } = await this.supabase.client
+    const createResponse = await this.supabase.client
       .from('agents')
       .insert({
         name: dto.name,
@@ -79,30 +79,33 @@ export class AgentsService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
-    this.logger.log(`Agent registered: ${(data as Agent).id} — "${dto.name}"`);
-    return data as Agent;
+    if (createResponse.error) throw new Error(createResponse.error.message);
+    const agent = createResponse.data as Agent;
+    this.logger.log(`Agent registered: ${agent.id} — "${dto.name}"`);
+    return agent;
   }
 
   async findAll(): Promise<Agent[]> {
-    const { data, error } = await this.supabase.client
+    const listResponse = await this.supabase.client
       .from('agents')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(error.message);
-    return (data ?? []) as Agent[];
+    if (listResponse.error) throw new Error(listResponse.error.message);
+    return (listResponse.data ?? []) as Agent[];
   }
 
   async findOne(id: string): Promise<Agent> {
-    const { data, error } = await this.supabase.client
+    const findResponse = await this.supabase.client
       .from('agents')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException(`Agent ${id} not found`);
-    return data as Agent;
+    if (findResponse.error || !findResponse.data) {
+      throw new NotFoundException(`Agent ${id} not found`);
+    }
+    return findResponse.data as Agent;
   }
 
   // ─── Agent execution ─────────────────────────────────────────────────────────
@@ -150,7 +153,7 @@ export class AgentsService {
     const completedTask = await this.tasksService.complete(task.id);
 
     // Update agent: IDLE + increment tasks_completed
-    const { data: updatedAgent } = await this.supabase.client
+    const updateResponse = await this.supabase.client
       .from('agents')
       .update({
         status: 'IDLE',
@@ -165,7 +168,7 @@ export class AgentsService {
     );
 
     return {
-      agent: (updatedAgent as Agent) ?? agent,
+      agent: (updateResponse.data as Agent) ?? agent,
       task: completedTask,
       result,
       toolCallsCount,
@@ -232,9 +235,7 @@ export class AgentsService {
           query: string;
         };
 
-        this.logger.debug(
-          `Agent "${agent.name}" searching: "${args.query}"`,
-        );
+        this.logger.debug(`Agent "${agent.name}" searching: "${args.query}"`);
 
         const searchContent = await this.webSearch(args.query);
         toolCallsCount++;
@@ -265,9 +266,6 @@ export class AgentsService {
     id: string,
     status: 'IDLE' | 'BUSY',
   ): Promise<void> {
-    await this.supabase.client
-      .from('agents')
-      .update({ status })
-      .eq('id', id);
+    await this.supabase.client.from('agents').update({ status }).eq('id', id);
   }
 }

@@ -6,6 +6,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,7 +14,10 @@ import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
   ApiParam,
+  ApiBearerAuth,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import {
   ApiCreatedTypedResponse,
   ApiOkTypedResponse,
@@ -31,12 +35,15 @@ export class AgentsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Register an agent',
     description:
       'Creates a new AI agent with its own Hedera account ID for receiving HBAR rewards.',
   })
   @ApiCreatedTypedResponse(AgentDto)
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   create(@Body() dto: CreateAgentDto): Promise<AgentDto> {
     return this.agentsService.create(dto) as Promise<AgentDto>;
   }
@@ -58,6 +65,8 @@ export class AgentsController {
   }
 
   @Post(':id/run')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Run an agent on a task',
     description:
@@ -71,6 +80,7 @@ export class AgentsController {
   @ApiOkTypedResponse(AgentRunResultDto)
   @ApiBadRequestResponse({ description: 'Agent is BUSY or task is not OPEN' })
   @ApiNotFoundResponse({ description: 'Agent or task not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   run(
     @Param('id') id: string,
     @Body() dto: RunAgentDto,

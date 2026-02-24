@@ -48,7 +48,7 @@ export class AgentRunResultDto {
   task: TaskDto;
 
   @ApiProperty({
-    description: 'The agent\'s final answer / deliverable',
+    description: "The agent's final answer / deliverable",
     example: 'Here is a summary of the latest Hedera blog posts...',
   })
   result: string;

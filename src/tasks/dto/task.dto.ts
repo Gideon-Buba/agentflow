@@ -44,7 +44,8 @@ export class TaskDto {
   hcs_sequence_number: number | null;
 
   @ApiPropertyOptional({
-    description: 'Hedera transaction ID of the HBAR payment (set on completion)',
+    description:
+      'Hedera transaction ID of the HBAR payment (set on completion)',
     example: '0.0.7991793@1708765432.000000000',
     nullable: true,
   })

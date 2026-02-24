@@ -14,7 +14,8 @@ export class CreateAgentDto {
   description?: string;
 
   @ApiProperty({
-    description: 'Hedera account ID where HBAR rewards are sent on task completion',
+    description:
+      'Hedera account ID where HBAR rewards are sent on task completion',
     example: '0.0.98765',
   })
   hederaAccountId: string;

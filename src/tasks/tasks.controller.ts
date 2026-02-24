@@ -7,6 +7,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,7 +16,10 @@ import {
   ApiNotFoundResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import {
   ApiCreatedTypedResponse,
   ApiOkTypedResponse,
@@ -33,6 +37,8 @@ export class TasksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a task',
     description:
@@ -41,6 +47,7 @@ export class TasksController {
   })
   @ApiCreatedTypedResponse(TaskDto)
   @ApiBadRequestResponse({ description: 'Missing required fields' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   create(@Body() dto: CreateTaskDto): Promise<TaskDto> {
     return this.tasksService.create(dto) as Promise<TaskDto>;
   }
@@ -76,6 +83,8 @@ export class TasksController {
   }
 
   @Post(':id/accept')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Accept a task',
     description:
@@ -90,6 +99,7 @@ export class TasksController {
   @ApiOkTypedResponse(TaskDto)
   @ApiBadRequestResponse({ description: 'Task is not OPEN' })
   @ApiNotFoundResponse({ description: 'Task not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   accept(
     @Param('id') id: string,
     @Body() dto: AcceptTaskDto,
@@ -98,6 +108,8 @@ export class TasksController {
   }
 
   @Post(':id/complete')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Complete a task',
     description:
@@ -115,6 +127,7 @@ export class TasksController {
     description: 'Task is not ACCEPTED or has no assigned agent',
   })
   @ApiNotFoundResponse({ description: 'Task not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   complete(@Param('id') id: string): Promise<TaskDto> {
     return this.tasksService.complete(id) as Promise<TaskDto>;
   }

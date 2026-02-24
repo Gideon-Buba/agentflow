@@ -71,7 +71,10 @@ export class HederaStatusResponse {
 }
 
 export class TopicIdResponse {
-  @ApiProperty({ description: 'Newly created HCS topic ID', example: '0.0.12345' })
+  @ApiProperty({
+    description: 'Newly created HCS topic ID',
+    example: '0.0.12345',
+  })
   topicId: string;
 }
 

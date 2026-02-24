@@ -9,11 +9,7 @@ import { HederaService } from '../hedera/hedera.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { AcceptTaskDto } from './dto/accept-task.dto';
 
-export type TaskStatus =
-  | 'OPEN'
-  | 'ACCEPTED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type TaskStatus = 'OPEN' | 'ACCEPTED' | 'COMPLETED' | 'CANCELLED';
 
 export interface Task {
   id: string;
@@ -40,7 +36,7 @@ export class TasksService {
 
   async create(dto: CreateTaskDto): Promise<Task> {
     // 1. Persist to Supabase first so we have an ID for the HCS payload
-    const { data, error } = await this.supabase.client
+    const insertResponse = await this.supabase.client
       .from('tasks')
       .insert({
         title: dto.title,
@@ -52,8 +48,8 @@ export class TasksService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
-    const task = data as Task;
+    if (insertResponse.error) throw new Error(insertResponse.error.message);
+    const task = insertResponse.data as Task;
 
     // 2. Publish TASK_POSTED event to HCS (best-effort — don't fail the request)
     try {
@@ -91,20 +87,22 @@ export class TasksService {
       query = query.eq('status', status);
     }
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return (data ?? []) as Task[];
+    const listResponse = await query;
+    if (listResponse.error) throw new Error(listResponse.error.message);
+    return (listResponse.data ?? []) as Task[];
   }
 
   async findOne(id: string): Promise<Task> {
-    const { data, error } = await this.supabase.client
+    const findResponse = await this.supabase.client
       .from('tasks')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException(`Task ${id} not found`);
-    return data as Task;
+    if (findResponse.error || !findResponse.data) {
+      throw new NotFoundException(`Task ${id} not found`);
+    }
+    return findResponse.data as Task;
   }
 
   async accept(id: string, dto: AcceptTaskDto): Promise<Task> {
@@ -116,15 +114,15 @@ export class TasksService {
       );
     }
 
-    const { data, error } = await this.supabase.client
+    const acceptResponse = await this.supabase.client
       .from('tasks')
       .update({ status: 'ACCEPTED', agent_id: dto.agentId })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
-    const updated = data as Task;
+    if (acceptResponse.error) throw new Error(acceptResponse.error.message);
+    const updated = acceptResponse.data as Task;
 
     try {
       await this.hedera.postTaskEvent('TASK_ACCEPTED', {
@@ -168,15 +166,15 @@ export class TasksService {
     }
 
     // 2. Mark completed in Supabase
-    const { data, error } = await this.supabase.client
+    const completeResponse = await this.supabase.client
       .from('tasks')
       .update({ status: 'COMPLETED', payment_tx_id: paymentTxId })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
-    const completed = data as Task;
+    if (completeResponse.error) throw new Error(completeResponse.error.message);
+    const completed = completeResponse.data as Task;
 
     // 3. Publish TASK_COMPLETED to HCS
     try {

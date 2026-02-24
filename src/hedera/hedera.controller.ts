@@ -5,13 +5,17 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
+  ApiBearerAuth,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import {
   ApiCreatedTypedResponse,
   ApiOkTypedResponse,
@@ -49,6 +53,8 @@ export class HederaController {
 
   @Post('topic')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create an HCS topic',
     description:
@@ -57,6 +63,7 @@ export class HederaController {
   })
   @ApiCreatedTypedResponse(TopicIdResponse)
   @ApiInternalServerErrorResponse({ description: 'Hedera network unreachable' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   async createTopic(@Body() dto: CreateTopicDto): Promise<TopicIdResponse> {
     const topicId = await this.hederaService.createTopic(dto.memo);
     if (dto.setAsMarketplace) {
@@ -67,6 +74,8 @@ export class HederaController {
 
   @Post('message')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a raw message to an HCS topic',
     description:
@@ -75,6 +84,7 @@ export class HederaController {
   @ApiCreatedTypedResponse(SequenceNumberResponse)
   @ApiBadRequestResponse({ description: 'Invalid topic ID format' })
   @ApiInternalServerErrorResponse({ description: 'Hedera network unreachable' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   async publishMessage(
     @Body() dto: PublishMessageDto,
   ): Promise<SequenceNumberResponse> {
@@ -87,6 +97,8 @@ export class HederaController {
 
   @Post('task-event')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Post a structured task event to the marketplace topic',
     description:
@@ -98,6 +110,7 @@ export class HederaController {
     description:
       'Hedera network unreachable or marketplace topic not initialised',
   })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   async postTaskEvent(
     @Body() dto: PostTaskEventDto,
   ): Promise<SequenceNumberResponse> {
@@ -110,6 +123,8 @@ export class HederaController {
 
   @Post('transfer')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Transfer HBAR to an account',
     description:
@@ -121,6 +136,7 @@ export class HederaController {
   @ApiInternalServerErrorResponse({
     description: 'Hedera network unreachable or insufficient balance',
   })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token' })
   async transferHbar(
     @Body() dto: TransferHbarDto,
   ): Promise<TransactionIdResponse> {
