@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { HederaModule } from './hedera/hedera.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { TasksModule } from './tasks/tasks.module';
+import { AgentsModule } from './agents/agents.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { TasksModule } from './tasks/tasks.module';
     SupabaseModule,
     HederaModule,
     TasksModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

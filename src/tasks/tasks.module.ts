@@ -7,5 +7,6 @@ import { HederaModule } from '../hedera/hedera.module';
   imports: [HederaModule],
   controllers: [TasksController],
   providers: [TasksService],
+  exports: [TasksService],
 })
 export class TasksModule {}
