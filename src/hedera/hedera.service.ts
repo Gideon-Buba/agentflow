@@ -40,12 +40,18 @@ export class HederaService implements OnModuleInit {
     this.client =
       network === 'mainnet' ? Client.forMainnet() : Client.forTestnet();
     this.client.setOperator(this.operatorId, this.operatorKey);
+    // grpcDeadline = per-call timeout; requestTimeout must be > grpcDeadline
+    this.client.setMaxAttempts(3);
+    this.client.setGrpcDeadline(8_000); // 8 s per gRPC call
+    this.client.setRequestTimeout(30_000); // 30 s total across all attempts
 
     this.logger.log(
       `Hedera client initialized — network: ${network}, operator: ${accountId}`,
     );
 
-    // Create the marketplace topic on startup if not already persisted
+    // Create the marketplace topic on startup if not already persisted.
+    // Non-fatal — the app boots normally; topic creation can be triggered via
+    // POST /hedera/topic or by setting HEDERA_MARKETPLACE_TOPIC_ID in .env.
     await this.initMarketplaceTopic();
   }
 
@@ -87,7 +93,7 @@ export class HederaService implements OnModuleInit {
 
     if (receipt.status !== Status.Success) {
       throw new Error(
-        `Message submission failed with status: ${receipt.status}`,
+        `Message submission failed with status: ${receipt.status.toString()}`,
       );
     }
 
@@ -127,7 +133,9 @@ export class HederaService implements OnModuleInit {
     const receipt: TransactionReceipt = await tx.getReceipt(this.client);
 
     if (receipt.status !== Status.Success) {
-      throw new Error(`HBAR transfer failed with status: ${receipt.status}`);
+      throw new Error(
+        `HBAR transfer failed with status: ${receipt.status.toString()}`,
+      );
     }
 
     const txId = tx.transactionId.toString();
@@ -142,10 +150,17 @@ export class HederaService implements OnModuleInit {
   getMarketplaceTopicId(): string {
     if (!this.marketplaceTopicId) {
       throw new Error(
-        'Marketplace topic not yet initialized. Check HEDERA_MARKETPLACE_TOPIC_ID env or wait for onModuleInit.',
+        'Marketplace topic not initialised. ' +
+          'Set HEDERA_MARKETPLACE_TOPIC_ID in .env, or call POST /hedera/topic to create one.',
       );
     }
     return this.marketplaceTopicId;
+  }
+
+  /** Manually set the marketplace topic (e.g. after calling POST /hedera/topic). */
+  setMarketplaceTopicId(topicId: string): void {
+    this.marketplaceTopicId = topicId;
+    this.logger.log(`Marketplace topic set to: ${topicId}`);
   }
 
   getOperatorAccountId(): string {
@@ -170,11 +185,19 @@ export class HederaService implements OnModuleInit {
     this.logger.log(
       'No HEDERA_MARKETPLACE_TOPIC_ID found — creating new HCS topic…',
     );
-    this.marketplaceTopicId = await this.createTopic(
-      'AgentFlow Task Marketplace',
-    );
-    this.logger.log(
-      `Add this to your .env to reuse the topic:\n  HEDERA_MARKETPLACE_TOPIC_ID=${this.marketplaceTopicId}`,
-    );
+    try {
+      this.marketplaceTopicId = await this.createTopic(
+        'AgentFlow Task Marketplace',
+      );
+      this.logger.log(
+        `Add this to your .env to reuse the topic:\n  HEDERA_MARKETPLACE_TOPIC_ID=${this.marketplaceTopicId}`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Could not auto-create marketplace topic (${(err as Error).message}). ` +
+          'The app will start anyway. Either set HEDERA_MARKETPLACE_TOPIC_ID in .env ' +
+          'or call POST /hedera/topic once testnet is reachable.',
+      );
+    }
   }
 }

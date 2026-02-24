@@ -7,25 +7,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { HederaService } from './hedera.service';
-
-class CreateTopicDto {
-  memo?: string;
-}
-
-class PublishMessageDto {
-  topicId: string;
-  message: string;
-}
-
-class PostTaskEventDto {
-  eventType: 'TASK_POSTED' | 'TASK_ACCEPTED' | 'TASK_COMPLETED';
-  payload: Record<string, unknown>;
-}
-
-class TransferHbarDto {
-  recipientId: string;
-  amountHbar: number;
-}
+import {
+  CreateTopicDto,
+  PublishMessageDto,
+  PostTaskEventDto,
+  TransferHbarDto,
+} from './dto/hedera.dto';
 
 @Controller('hedera')
 export class HederaController {
@@ -45,6 +32,9 @@ export class HederaController {
   @HttpCode(HttpStatus.CREATED)
   async createTopic(@Body() dto: CreateTopicDto) {
     const topicId = await this.hederaService.createTopic(dto.memo);
+    if (dto.setAsMarketplace) {
+      this.hederaService.setMarketplaceTopicId(topicId);
+    }
     return { topicId };
   }
 
