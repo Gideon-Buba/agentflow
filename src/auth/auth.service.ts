@@ -8,24 +8,35 @@ export class AuthService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async register(dto: AuthDto): Promise<AuthResponseDto> {
-    const { data, error } = await this.supabaseService.client.auth.signUp({
-      email: dto.email,
-      password: dto.password,
-    });
+    // Use the admin client so the user is auto-confirmed regardless of the
+    // project's email confirmation setting — no inbox required.
+    const { data, error } =
+      await this.supabaseService.admin.auth.admin.createUser({
+        email: dto.email,
+        password: dto.password,
+        email_confirm: true,
+      });
 
-    if (error) {
-      throw new UnauthorizedException(error.message);
+    if (error || !data.user) {
+      throw new UnauthorizedException(error?.message ?? 'Registration failed');
     }
 
-    if (!data.session || !data.user) {
+    // admin.createUser doesn't return a session — sign in immediately to get one
+    const { data: session, error: loginError } =
+      await this.supabaseService.client.auth.signInWithPassword({
+        email: dto.email,
+        password: dto.password,
+      });
+
+    if (loginError || !session.session || !session.user) {
       throw new UnauthorizedException(
-        'Email confirmation required — check your inbox before logging in.',
+        loginError?.message ?? 'Registered but could not create session',
       );
     }
 
     return {
-      accessToken: data.session.access_token,
-      user: { id: data.user.id, email: data.user.email ?? '' },
+      accessToken: session.session.access_token,
+      user: { id: session.user.id, email: session.user.email ?? '' },
     };
   }
 
