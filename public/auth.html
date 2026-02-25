@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFlow — Auth</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index.html">⚡ AgentFlow</a>
+  <a href="index.html"   data-page="index.html">Home</a>
+  <a href="auth.html"    data-page="auth.html">Auth</a>
+  <a href="tasks.html"   data-page="tasks.html">Tasks</a>
+  <a href="agents.html"  data-page="agents.html">Agents</a>
+  <a href="hedera.html"  data-page="hedera.html">Hedera</a>
+  <span class="nav-spacer"></span>
+  <a href="/api" target="_blank" class="swagger-link">Swagger ↗</a>
+</nav>
+
+<div class="container">
+  <h1>Auth</h1>
+  <p class="subtitle">Register or log in to get a JWT — it auto-saves and is used by all other pages</p>
+
+  <div id="token-bar" class="token-bar"></div>
+
+  <div class="info-box">
+    If <strong>email confirmation</strong> is enabled in your Supabase project, registration will succeed
+    but you won't receive a token until you click the confirmation link. Disable it in
+    <strong>Authentication → Email → Confirm email</strong> for local testing.
+  </div>
+
+  <!-- Register -->
+  <div class="section-header">Register</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/auth/register</span>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Email</label>
+        <input id="reg-email" type="email" placeholder="user@example.com" />
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input id="reg-password" type="password" placeholder="min 6 characters" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doRegister()">Register</button>
+    <pre id="r-register" class="response">Fill in the form and click Register…</pre>
+  </div>
+
+  <!-- Login -->
+  <div class="section-header">Login</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/auth/login</span>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="user@example.com" />
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input id="login-password" type="password" placeholder="your password" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Log In</button>
+    <pre id="r-login" class="response">Fill in the form and click Log In…</pre>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  async function doRegister() {
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!email || !password) return showError('r-register', 'Email and password are required.');
+    showLoading('r-register', 'Registering…');
+    try {
+      const r = await api('POST', '/auth/register', { email, password });
+      showResult('r-register', r, { token: true });
+      if (r.ok) {
+        document.getElementById('login-email').value = email;
+        document.getElementById('login-password').value = password;
+      }
+    } catch (e) {
+      showError('r-register', `Network error: ${e.message}`);
+    }
+  }
+
+  async function doLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return showError('r-login', 'Email and password are required.');
+    showLoading('r-login', 'Logging in…');
+    try {
+      const r = await api('POST', '/auth/login', { email, password });
+      showResult('r-login', r, { token: true });
+    } catch (e) {
+      showError('r-login', `Network error: ${e.message}`);
+    }
+  }
+</script>
+</body>
+</html>

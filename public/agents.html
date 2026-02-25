@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFlow — Agents</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--warning);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-section { margin-top: 14px; }
+    .result-section h4 { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .answer-box {
+      background: var(--bg);
+      border: 1px solid #238636;
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 13px;
+      color: var(--success);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index.html">⚡ AgentFlow</a>
+  <a href="index.html"   data-page="index.html">Home</a>
+  <a href="auth.html"    data-page="auth.html">Auth</a>
+  <a href="tasks.html"   data-page="tasks.html">Tasks</a>
+  <a href="agents.html"  data-page="agents.html">Agents</a>
+  <a href="hedera.html"  data-page="hedera.html">Hedera</a>
+  <span class="nav-spacer"></span>
+  <a href="/api" target="_blank" class="swagger-link">Swagger ↗</a>
+</nav>
+
+<div class="container">
+  <h1>Agents</h1>
+  <p class="subtitle">Register AI agents and run them on tasks</p>
+
+  <div id="token-bar" class="token-bar"></div>
+
+  <!-- Register agent -->
+  <div class="section-header">Register Agent <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/agents</span>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Name</label>
+        <input id="a-name" type="text" placeholder="e.g. ResearchBot Alpha" />
+      </div>
+      <div class="fg">
+        <label>Model</label>
+        <select id="a-model">
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+          <option value="gpt-4-turbo">gpt-4-turbo</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Hedera Account ID <span style="color:var(--muted);font-weight:400;">(receives HBAR payment)</span></label>
+      <input id="a-hedera" type="text" placeholder="0.0.12345" />
+    </div>
+    <div class="fg">
+      <label>Description (optional)</label>
+      <input id="a-desc" type="text" placeholder="What this agent specialises in" />
+    </div>
+    <button class="btn-primary" onclick="createAgent()">Register Agent</button>
+    <pre id="r-create" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- List agents -->
+  <div class="section-header">List Agents</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/agents</span>
+    </div>
+    <button class="btn-primary" onclick="listAgents()">List All Agents</button>
+    <pre id="r-list" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Get agent by ID -->
+  <div class="section-header">Get Agent</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/agents/:id</span>
+    </div>
+    <div class="fg">
+      <label>Agent UUID</label>
+      <input id="a-get-id" type="text" placeholder="agent UUID" />
+    </div>
+    <button class="btn-primary" onclick="getAgent()">Get Agent</button>
+    <pre id="r-get" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Run agent -->
+  <div class="section-header">Run Agent on Task <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/agents/:id/run</span>
+    </div>
+    <div class="info-box" style="margin-bottom:14px;">
+      This call <strong>blocks until the agent finishes</strong>. The agent will:<br>
+      1. Accept the task (TASK_ACCEPTED → HCS)<br>
+      2. Reason with OpenAI, calling <code>web_search</code> via Tavily as needed<br>
+      3. Complete the task → transfer HBAR on-chain + TASK_COMPLETED → HCS<br><br>
+      ⏱ <strong>Expect 30–120 seconds</strong> for complex tasks. Do not close this page.
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Agent UUID</label>
+        <input id="a-run-id" type="text" placeholder="agent UUID" />
+      </div>
+      <div class="fg">
+        <label>Task UUID</label>
+        <input id="a-run-task" type="text" placeholder="task UUID (must be OPEN)" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="run-btn" onclick="runAgent()">▶ Run Agent</button>
+      <span id="run-timer" style="font-size:12px;color:var(--muted);display:none;"></span>
+    </div>
+
+    <div id="r-run-wrap">
+      <pre id="r-run" class="response">Response will appear here after the agent finishes…</pre>
+    </div>
+
+    <!-- Agent answer displayed separately for readability -->
+    <div id="answer-section" class="result-section" style="display:none;">
+      <h4>Agent Answer</h4>
+      <div id="answer-box" class="answer-box"></div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  async function createAgent() {
+    const name            = document.getElementById('a-name').value.trim();
+    const hederaAccountId = document.getElementById('a-hedera').value.trim();
+    const model           = document.getElementById('a-model').value;
+    const description     = document.getElementById('a-desc').value.trim() || undefined;
+    if (!name || !hederaAccountId) return showError('r-create', 'Name and Hedera account ID are required.');
+    showLoading('r-create', 'Registering agent…');
+    try {
+      const r = await api('POST', '/agents', { name, hederaAccountId, model, description });
+      showResult('r-create', r);
+      if (r.ok && r.data?.id) {
+        document.getElementById('a-get-id').value = r.data.id;
+        document.getElementById('a-run-id').value = r.data.id;
+      }
+    } catch (e) {
+      showError('r-create', `Network error: ${e.message}`);
+    }
+  }
+
+  async function listAgents() {
+    showLoading('r-list', 'Fetching agents…');
+    try {
+      const r = await api('GET', '/agents');
+      showResult('r-list', r);
+    } catch (e) {
+      showError('r-list', `Network error: ${e.message}`);
+    }
+  }
+
+  async function getAgent() {
+    const id = document.getElementById('a-get-id').value.trim();
+    if (!id) return showError('r-get', 'Agent UUID is required.');
+    showLoading('r-get', 'Fetching agent…');
+    try {
+      const r = await api('GET', `/agents/${id}`);
+      showResult('r-get', r);
+    } catch (e) {
+      showError('r-get', `Network error: ${e.message}`);
+    }
+  }
+
+  let timerInterval = null;
+
+  async function runAgent() {
+    const agentId = document.getElementById('a-run-id').value.trim();
+    const taskId  = document.getElementById('a-run-task').value.trim();
+    if (!agentId || !taskId) return showError('r-run', 'Agent UUID and Task UUID are required.');
+
+    // Update UI to loading state
+    document.getElementById('run-btn').disabled = true;
+    document.getElementById('run-btn').textContent = '⏳ Running…';
+    document.getElementById('answer-section').style.display = 'none';
+
+    const timerEl = document.getElementById('run-timer');
+    timerEl.style.display = 'inline';
+    let secs = 0;
+    timerInterval = setInterval(() => {
+      secs++;
+      timerEl.textContent = `${secs}s elapsed`;
+    }, 1000);
+
+    const pre = document.getElementById('r-run');
+    pre.className = 'response loading';
+    pre.innerHTML = '<span class="spinner"></span>Agent is working — do not close this page…';
+
+    try {
+      const r = await api('POST', `/agents/${agentId}/run`, { taskId });
+
+      clearInterval(timerInterval);
+      timerEl.style.display = 'none';
+
+      // Show full JSON response
+      showResult('r-run', r);
+
+      // If successful, also surface the agent's answer nicely
+      if (r.ok && r.data?.result) {
+        document.getElementById('answer-section').style.display = 'block';
+        document.getElementById('answer-box').textContent = r.data.result;
+        // Add metadata line
+        const meta = `\n\n— ${r.data.toolCallsCount} web search(es) | HBAR transferred to ${r.data.agent?.hedera_account_id ?? 'agent'}`;
+        document.getElementById('answer-box').textContent += meta;
+      }
+    } catch (e) {
+      clearInterval(timerInterval);
+      timerEl.style.display = 'none';
+      showError('r-run', `Network error: ${e.message}`);
+    } finally {
+      document.getElementById('run-btn').disabled = false;
+      document.getElementById('run-btn').textContent = '▶ Run Agent';
+    }
+  }
+</script>
+</body>
+</html>

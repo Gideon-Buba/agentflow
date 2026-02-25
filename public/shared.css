@@ -1,0 +1,255 @@
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --primary: #58a6ff;
+  --success: #3fb950;
+  --error: #f85149;
+  --warning: #d29922;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Nav ── */
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+}
+
+.nav-brand {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  margin-right: 12px;
+  letter-spacing: -0.3px;
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+nav a:hover { color: var(--text); background: var(--border); }
+nav a.active { color: var(--text); background: #21262d; }
+
+nav .nav-spacer { flex: 1; }
+
+.swagger-link {
+  font-size: 12px;
+  color: var(--muted) !important;
+  border: 1px solid var(--border);
+}
+
+/* ── Layout ── */
+.container { max-width: 860px; margin: 0 auto; padding: 28px 24px; }
+
+h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.subtitle { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+h2 { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.3px; text-transform: uppercase; }
+
+/* ── Token bar ── */
+.token-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.token-bar .tb-label { color: var(--muted); white-space: nowrap; }
+.token-bar .tb-value {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.token-bar .tb-none { color: var(--warning); }
+
+/* ── Card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+/* ── Method badges ── */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.badge-get  { background: #112211; color: var(--success); border: 1px solid #1a3a1a; }
+.badge-post { background: #0d2245; color: var(--primary);  border: 1px solid #1a3a6a; }
+
+.lock { font-size: 11px; color: var(--warning); }
+.path { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: var(--muted); }
+
+/* ── Form controls ── */
+.form-row { display: flex; gap: 12px; }
+.form-row .fg { flex: 1; min-width: 0; }
+
+.fg { margin-bottom: 12px; }
+.fg label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.fg input,
+.fg select,
+.fg textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.fg input:focus,
+.fg select:focus,
+.fg textarea:focus { border-color: var(--primary); }
+
+.fg textarea { resize: vertical; min-height: 70px; }
+.fg select option { background: var(--surface); }
+
+/* ── Buttons ── */
+button {
+  background: #21262d;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+button:hover { background: var(--border); }
+
+button.btn-primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
+button.btn-primary:hover { background: #388bfd; }
+
+button.btn-sm {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+button.btn-danger { background: #21090a; border-color: #da3633; color: var(--error); }
+button.btn-danger:hover { background: #3a0a0b; }
+
+.btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Response display ── */
+.response {
+  margin-top: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: 'SFMono-Regular', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 36px;
+  max-height: 320px;
+  overflow-y: auto;
+  color: var(--muted);
+  transition: border-color 0.2s, color 0.2s;
+}
+.response.ok    { color: var(--success); border-color: #238636; }
+.response.err   { color: var(--error);   border-color: #da3633; }
+.response.loading { color: var(--warning); }
+
+/* ── Divider ── */
+.section-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin: 28px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Info box ── */
+.info-box {
+  background: #111c2d;
+  border: 1px solid #1f3a5f;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #79c0ff;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.info-box strong { color: var(--primary); }
+
+/* ── Status indicator ── */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  margin-right: 6px;
+}
+.status-dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot.red   { background: var(--error); }

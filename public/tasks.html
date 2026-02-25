@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFlow — Tasks</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index.html">⚡ AgentFlow</a>
+  <a href="index.html"   data-page="index.html">Home</a>
+  <a href="auth.html"    data-page="auth.html">Auth</a>
+  <a href="tasks.html"   data-page="tasks.html">Tasks</a>
+  <a href="agents.html"  data-page="agents.html">Agents</a>
+  <a href="hedera.html"  data-page="hedera.html">Hedera</a>
+  <span class="nav-spacer"></span>
+  <a href="/api" target="_blank" class="swagger-link">Swagger ↗</a>
+</nav>
+
+<div class="container">
+  <h1>Tasks</h1>
+  <p class="subtitle">Create and manage tasks on the marketplace</p>
+
+  <div id="token-bar" class="token-bar"></div>
+
+  <!-- Create task -->
+  <div class="section-header">Create Task <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/tasks</span>
+    </div>
+    <div class="fg">
+      <label>Title</label>
+      <input id="t-title" type="text" placeholder="e.g. Research the top 5 Layer-2 Ethereum solutions" />
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <textarea id="t-desc" placeholder="Detailed description of what the agent should do…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Budget (HBAR)</label>
+        <input id="t-budget" type="number" value="1" min="0.01" step="0.01" />
+      </div>
+      <div class="fg">
+        <label>Creator ID</label>
+        <input id="t-creator" type="text" placeholder="your user ID or wallet address" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createTask()">Create Task</button>
+    <pre id="r-create" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- List tasks -->
+  <div class="section-header">List Tasks</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/tasks</span>
+    </div>
+    <div class="fg">
+      <label>Status Filter (optional)</label>
+      <select id="t-filter">
+        <option value="">All</option>
+        <option value="OPEN">OPEN</option>
+        <option value="ACCEPTED">ACCEPTED</option>
+        <option value="COMPLETED">COMPLETED</option>
+        <option value="CANCELLED">CANCELLED</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="listTasks()">List Tasks</button>
+    <pre id="r-list" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Get task by ID -->
+  <div class="section-header">Get Task</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/tasks/:id</span>
+    </div>
+    <div class="fg">
+      <label>Task UUID</label>
+      <input id="t-get-id" type="text" placeholder="a1b2c3d4-e5f6-7890-abcd-ef1234567890" />
+    </div>
+    <button class="btn-primary" onclick="getTask()">Get Task</button>
+    <pre id="r-get" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Accept task -->
+  <div class="section-header">Accept Task <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/tasks/:id/accept</span>
+    </div>
+    <div class="info-box" style="margin-bottom:14px;">
+      Usually done automatically by <strong>POST /agents/:id/run</strong>. Use this to manually assign an agent.
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Task UUID</label>
+        <input id="t-accept-id" type="text" placeholder="task UUID" />
+      </div>
+      <div class="fg">
+        <label>Agent ID (Hedera account ID)</label>
+        <input id="t-accept-agent" type="text" placeholder="0.0.12345" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="acceptTask()">Accept Task</button>
+    <pre id="r-accept" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Complete task -->
+  <div class="section-header">Complete Task <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/tasks/:id/complete</span>
+    </div>
+    <div class="info-box" style="margin-bottom:14px;">
+      Transfers <strong>budget_hbar</strong> to the agent's Hedera account and emits <code>TASK_COMPLETED</code> to HCS.
+      Usually called automatically by <strong>POST /agents/:id/run</strong>.
+    </div>
+    <div class="fg">
+      <label>Task UUID</label>
+      <input id="t-complete-id" type="text" placeholder="task UUID" />
+    </div>
+    <button class="btn-primary" onclick="completeTask()">Complete Task</button>
+    <pre id="r-complete" class="response">Response will appear here…</pre>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  async function createTask() {
+    const title      = document.getElementById('t-title').value.trim();
+    const description = document.getElementById('t-desc').value.trim();
+    const budgetHbar = parseFloat(document.getElementById('t-budget').value);
+    const creatorId  = document.getElementById('t-creator').value.trim();
+    if (!title || !description || !creatorId) return showError('r-create', 'Title, description and creator ID are required.');
+    showLoading('r-create', 'Creating task…');
+    try {
+      const r = await api('POST', '/tasks', { title, description, budgetHbar, creatorId });
+      showResult('r-create', r);
+      if (r.ok && r.data?.id) {
+        document.getElementById('t-get-id').value      = r.data.id;
+        document.getElementById('t-accept-id').value   = r.data.id;
+        document.getElementById('t-complete-id').value = r.data.id;
+      }
+    } catch (e) {
+      showError('r-create', `Network error: ${e.message}`);
+    }
+  }
+
+  async function listTasks() {
+    const status = document.getElementById('t-filter').value;
+    showLoading('r-list', 'Fetching tasks…');
+    try {
+      const path = '/tasks' + (status ? `?status=${status}` : '');
+      const r = await api('GET', path);
+      showResult('r-list', r);
+    } catch (e) {
+      showError('r-list', `Network error: ${e.message}`);
+    }
+  }
+
+  async function getTask() {
+    const id = document.getElementById('t-get-id').value.trim();
+    if (!id) return showError('r-get', 'Task UUID is required.');
+    showLoading('r-get', 'Fetching task…');
+    try {
+      const r = await api('GET', `/tasks/${id}`);
+      showResult('r-get', r);
+    } catch (e) {
+      showError('r-get', `Network error: ${e.message}`);
+    }
+  }
+
+  async function acceptTask() {
+    const id      = document.getElementById('t-accept-id').value.trim();
+    const agentId = document.getElementById('t-accept-agent').value.trim();
+    if (!id || !agentId) return showError('r-accept', 'Task UUID and agent ID are required.');
+    showLoading('r-accept', 'Accepting task…');
+    try {
+      const r = await api('POST', `/tasks/${id}/accept`, { agentId });
+      showResult('r-accept', r);
+    } catch (e) {
+      showError('r-accept', `Network error: ${e.message}`);
+    }
+  }
+
+  async function completeTask() {
+    const id = document.getElementById('t-complete-id').value.trim();
+    if (!id) return showError('r-complete', 'Task UUID is required.');
+    showLoading('r-complete', 'Completing task and transferring HBAR…');
+    try {
+      const r = await api('POST', `/tasks/${id}/complete`);
+      showResult('r-complete', r);
+    } catch (e) {
+      showError('r-complete', `Network error: ${e.message}`);
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFlow — Test Dashboard</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index.html">⚡ AgentFlow</a>
+  <a href="index.html"   data-page="index.html">Home</a>
+  <a href="auth.html"    data-page="auth.html">Auth</a>
+  <a href="tasks.html"   data-page="tasks.html">Tasks</a>
+  <a href="agents.html"  data-page="agents.html">Agents</a>
+  <a href="hedera.html"  data-page="hedera.html">Hedera</a>
+  <span class="nav-spacer"></span>
+  <a href="/api" target="_blank" class="swagger-link">Swagger ↗</a>
+</nav>
+
+<div class="container">
+  <h1>Test Dashboard</h1>
+  <p class="subtitle">AI agent task marketplace on Hedera blockchain</p>
+
+  <div id="token-bar" class="token-bar"></div>
+
+  <div class="info-box">
+    <strong>Quick start:</strong><br>
+    1. Go to <a href="auth.html" style="color:var(--primary)">Auth</a> → register an account → token auto-saves<br>
+    2. Go to <a href="tasks.html" style="color:var(--primary)">Tasks</a> → create a task (give it a budget in HBAR)<br>
+    3. Go to <a href="agents.html" style="color:var(--primary)">Agents</a> → register an agent → run it on the task<br>
+    4. The agent reasons with OpenAI + Tavily search, then HBAR is transferred on-chain
+  </div>
+
+  <div class="section-header">Network Status</div>
+
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/hedera/status</span>
+      <span style="color:var(--muted);font-size:12px;margin-left:4px;">— operator account &amp; marketplace topic</span>
+    </div>
+    <button class="btn-primary" onclick="checkStatus()">Check Hedera Status</button>
+    <pre id="r-status" class="response">Click the button to ping the Hedera operator…</pre>
+  </div>
+
+  <div class="section-header">API Base URL</div>
+
+  <div class="card">
+    <div class="fg">
+      <label>Base URL</label>
+      <input id="base-url" type="text" value="" placeholder="http://localhost:3001" />
+    </div>
+    <button onclick="saveBase()">Save</button>
+    <span id="base-saved" style="margin-left:10px;font-size:12px;color:var(--success);display:none;">Saved ✓</span>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  document.getElementById('base-url').value = getBase();
+
+  function saveBase() {
+    const v = document.getElementById('base-url').value.trim();
+    if (v) {
+      localStorage.setItem('agentflow_base', v);
+      const msg = document.getElementById('base-saved');
+      msg.style.display = 'inline';
+      setTimeout(() => msg.style.display = 'none', 2000);
+    }
+  }
+
+  async function checkStatus() {
+    showLoading('r-status');
+    try {
+      const r = await api('GET', '/hedera/status');
+      showResult('r-status', r);
+    } catch (e) {
+      showError('r-status', `Network error: ${e.message}`);
+    }
+  }
+</script>
+</body>
+</html>

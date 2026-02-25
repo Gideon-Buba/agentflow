@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFlow — Hedera</title>
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="index.html">⚡ AgentFlow</a>
+  <a href="index.html"   data-page="index.html">Home</a>
+  <a href="auth.html"    data-page="auth.html">Auth</a>
+  <a href="tasks.html"   data-page="tasks.html">Tasks</a>
+  <a href="agents.html"  data-page="agents.html">Agents</a>
+  <a href="hedera.html"  data-page="hedera.html">Hedera</a>
+  <span class="nav-spacer"></span>
+  <a href="/api" target="_blank" class="swagger-link">Swagger ↗</a>
+</nav>
+
+<div class="container">
+  <h1>Hedera</h1>
+  <p class="subtitle">Raw blockchain primitives — HCS topics and HBAR transfers</p>
+
+  <div id="token-bar" class="token-bar"></div>
+
+  <div class="info-box">
+    These endpoints interact directly with <strong>Hedera Testnet</strong>. If gRPC port 50211 is blocked
+    by your network firewall, write operations will fail — read operations that don't hit the network
+    (like <code>GET /hedera/status</code>) will still work.
+  </div>
+
+  <!-- Status -->
+  <div class="section-header">Operator Status</div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-get">GET</span>
+      <span class="path">/hedera/status</span>
+    </div>
+    <button class="btn-primary" onclick="getStatus()">Get Status</button>
+    <pre id="r-status" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Create topic -->
+  <div class="section-header">Create HCS Topic <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/hedera/topic</span>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Memo (optional)</label>
+        <input id="h-topic-memo" type="text" placeholder="e.g. AgentFlow Marketplace" />
+      </div>
+      <div class="fg" style="flex:0 0 auto;padding-top:24px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input id="h-topic-marketplace" type="checkbox" style="width:auto;" />
+          Set as marketplace topic
+        </label>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createTopic()">Create Topic</button>
+    <pre id="r-topic" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Publish message -->
+  <div class="section-header">Publish Raw Message <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/hedera/message</span>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Topic ID</label>
+        <input id="h-msg-topic" type="text" placeholder="0.0.12345" />
+      </div>
+    </div>
+    <div class="fg">
+      <label>Message</label>
+      <textarea id="h-msg-body" placeholder="any text or JSON string"></textarea>
+    </div>
+    <button class="btn-primary" onclick="publishMessage()">Publish Message</button>
+    <pre id="r-message" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Post task event -->
+  <div class="section-header">Post Task Event <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/hedera/task-event</span>
+    </div>
+    <div class="fg">
+      <label>Event Type</label>
+      <select id="h-event-type">
+        <option>TASK_POSTED</option>
+        <option>TASK_ACCEPTED</option>
+        <option>TASK_COMPLETED</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Payload (JSON)</label>
+      <textarea id="h-event-payload" style="min-height:90px;">{
+  "taskId": "uuid-here",
+  "title": "Example task"
+}</textarea>
+    </div>
+    <button class="btn-primary" onclick="postTaskEvent()">Post Event</button>
+    <pre id="r-event" class="response">Response will appear here…</pre>
+  </div>
+
+  <!-- Transfer HBAR -->
+  <div class="section-header">Transfer HBAR <span class="lock">🔒</span></div>
+  <div class="card">
+    <div class="card-title">
+      <span class="badge badge-post">POST</span>
+      <span class="path">/hedera/transfer</span>
+    </div>
+    <div class="info-box" style="margin-bottom:14px;">
+      Sends HBAR from the <strong>operator account</strong> (configured via <code>HEDERA_ACCOUNT_ID</code>)
+      to any Hedera account. Use this to top up agent accounts for testing.
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label>Recipient Account ID</label>
+        <input id="h-tx-recipient" type="text" placeholder="0.0.12345" />
+      </div>
+      <div class="fg">
+        <label>Amount (HBAR)</label>
+        <input id="h-tx-amount" type="number" value="1" min="0.01" step="0.01" />
+      </div>
+    </div>
+    <button class="btn-primary" onclick="transferHbar()">Transfer HBAR</button>
+    <pre id="r-transfer" class="response">Response will appear here…</pre>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  async function getStatus() {
+    showLoading('r-status', 'Fetching…');
+    try {
+      const r = await api('GET', '/hedera/status');
+      showResult('r-status', r);
+    } catch (e) {
+      showError('r-status', `Network error: ${e.message}`);
+    }
+  }
+
+  async function createTopic() {
+    const memo           = document.getElementById('h-topic-memo').value.trim() || undefined;
+    const setAsMarketplace = document.getElementById('h-topic-marketplace').checked;
+    showLoading('r-topic', 'Creating topic on Hedera Testnet…');
+    try {
+      const r = await api('POST', '/hedera/topic', { memo, setAsMarketplace });
+      showResult('r-topic', r);
+      if (r.ok && r.data?.topicId) {
+        document.getElementById('h-msg-topic').value = r.data.topicId;
+      }
+    } catch (e) {
+      showError('r-topic', `Network error: ${e.message}`);
+    }
+  }
+
+  async function publishMessage() {
+    const topicId = document.getElementById('h-msg-topic').value.trim();
+    const message = document.getElementById('h-msg-body').value.trim();
+    if (!topicId || !message) return showError('r-message', 'Topic ID and message are required.');
+    showLoading('r-message', 'Publishing to HCS…');
+    try {
+      const r = await api('POST', '/hedera/message', { topicId, message });
+      showResult('r-message', r);
+    } catch (e) {
+      showError('r-message', `Network error: ${e.message}`);
+    }
+  }
+
+  async function postTaskEvent() {
+    const eventType = document.getElementById('h-event-type').value;
+    let payload;
+    try {
+      payload = JSON.parse(document.getElementById('h-event-payload').value);
+    } catch {
+      return showError('r-event', 'Payload must be valid JSON.');
+    }
+    showLoading('r-event', 'Posting event to marketplace topic…');
+    try {
+      const r = await api('POST', '/hedera/task-event', { eventType, payload });
+      showResult('r-event', r);
+    } catch (e) {
+      showError('r-event', `Network error: ${e.message}`);
+    }
+  }
+
+  async function transferHbar() {
+    const recipientId = document.getElementById('h-tx-recipient').value.trim();
+    const amountHbar  = parseFloat(document.getElementById('h-tx-amount').value);
+    if (!recipientId || isNaN(amountHbar)) return showError('r-transfer', 'Recipient and amount are required.');
+    showLoading('r-transfer', `Sending ${amountHbar} HBAR to ${recipientId}…`);
+    try {
+      const r = await api('POST', '/hedera/transfer', { recipientId, amountHbar });
+      showResult('r-transfer', r);
+    } catch (e) {
+      showError('r-transfer', `Network error: ${e.message}`);
+    }
+  }
+</script>
+</body>
+</html>
