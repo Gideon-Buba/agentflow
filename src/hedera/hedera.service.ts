@@ -111,7 +111,13 @@ export class HederaService implements OnModuleInit {
     eventType: 'TASK_POSTED' | 'TASK_ACCEPTED' | 'TASK_COMPLETED',
     payload: Record<string, unknown>,
   ): Promise<number> {
-    const topicId = this.getMarketplaceTopicId();
+    const topicId = this.marketplaceTopicId;
+    if (!topicId) {
+      throw new Error(
+        'Marketplace topic not initialised. ' +
+          'Set HEDERA_MARKETPLACE_TOPIC_ID in .env, or call POST /hedera/topic to create one.',
+      );
+    }
     const message = JSON.stringify({ eventType, ...payload, ts: Date.now() });
     return this.publishMessage(topicId, message);
   }
@@ -147,13 +153,7 @@ export class HederaService implements OnModuleInit {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  getMarketplaceTopicId(): string {
-    if (!this.marketplaceTopicId) {
-      throw new Error(
-        'Marketplace topic not initialised. ' +
-          'Set HEDERA_MARKETPLACE_TOPIC_ID in .env, or call POST /hedera/topic to create one.',
-      );
-    }
+  getMarketplaceTopicId(): string | null {
     return this.marketplaceTopicId;
   }
 

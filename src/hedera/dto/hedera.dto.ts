@@ -66,8 +66,13 @@ export class HederaStatusResponse {
   @ApiProperty({ example: '0.0.7991793' })
   operator: string;
 
-  @ApiProperty({ example: '0.0.12345' })
-  marketplaceTopicId: string;
+  @ApiPropertyOptional({
+    example: '0.0.12345',
+    description:
+      'null when no marketplace topic is configured — set HEDERA_MARKETPLACE_TOPIC_ID in .env or call POST /hedera/topic',
+    nullable: true,
+  })
+  marketplaceTopicId: string | null;
 }
 
 export class TopicIdResponse {
